@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>OpenWA</title>
+    <style>
+      :root { --bg:#f6f7f9; --card:#fff; --fg:#14181f; --muted:#667085; --line:#d8dde6; --accent:#25d366; --accent-fg:#052e16; --err:#b42318; }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg:#0e1116; --card:#171b22; --fg:#eef1f6; --muted:#9aa4b2; --line:#2a313c; --err:#f97066; }
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body { background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        display: flex; align-items: center; justify-content: center; padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom); }
+      main { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
+      h1 { font-size: 1.4rem; margin: 0 0 4px; }
+      p { margin: 0 0 16px; color: var(--muted); font-size: .92rem; }
+      label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 6px; }
+      input { width: 100%; padding: 12px; font-size: 1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); }
+      input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+      button { width: 100%; margin-top: 14px; padding: 12px; font-size: 1rem; font-weight: 600; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-fg); cursor: pointer; }
+      button.secondary { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+      .err { color: var(--err); font-size: .85rem; min-height: 1.2em; margin-top: 8px; }
+      .hint { font-size: .8rem; color: var(--muted); margin-top: 12px; }
+      [hidden] { display: none !important; }
+      .url { word-break: break-all; font-weight: 600; color: var(--fg); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>OpenWA</h1>
+
+      <section id="connect" hidden>
+        <p>Connecting to <span class="url" id="savedUrl"></span>…</p>
+        <button class="secondary" id="changeBtn" type="button">Change server</button>
+      </section>
+
+      <section id="setup" hidden>
+        <p>Enter the address of your OpenWA server to open its dashboard.</p>
+        <label for="url">Server URL</label>
+        <input id="url" type="url" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="https://wa.example.com or http://192.168.1.10:2785" />
+        <div class="err" id="err" role="alert"></div>
+        <button id="saveBtn" type="button">Connect</button>
+        <p class="hint">Use the same address you open in a browser (the gateway serves the dashboard). To switch server later, open the app and tap “Change server” during the short connecting screen.</p>
+      </section>
+    </main>
+
+    <script src="config.js"></script>
+    <script>
+      (function () {
+        var KEY = 'openwa_server_url';
+        var $ = function (id) { return document.getElementById(id); };
+        var timer = null;
+
+        function normalize(raw) {
+          var v = (raw || '').trim();
+          if (!v) return null;
+          if (!/^https?:\/\//i.test(v)) v = 'https://' + v;
+          try {
+            var u = new URL(v);
+            return u.origin + u.pathname.replace(/\/+$/, '');
+          } catch (e) { return null; }
+        }
+        function read() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+        function write(v) { try { localStorage.setItem(KEY, v); } catch (e) { /* ignore */ } }
+
+        function showSetup(prefill) {
+          clearTimeout(timer);
+          $('connect').hidden = true;
+          $('setup').hidden = false;
+          $('url').value = prefill || '';
+          $('url').focus();
+        }
+        function go(url) { window.location.replace(url); }
+
+        $('saveBtn').addEventListener('click', function () {
+          var url = normalize($('url').value);
+          if (!url) { $('err').textContent = 'Enter a valid address, e.g. https://wa.example.com'; return; }
+          write(url);
+          go(url);
+        });
+        $('url').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('saveBtn').click(); });
+        $('changeBtn').addEventListener('click', function () { showSetup(read() || ''); });
+
+        var params = new URLSearchParams(location.search);
+        var saved = read() || normalize(window.OPENWA_DEFAULT_URL);
+        if (params.has('change') || !saved) {
+          showSetup(saved || '');
+        } else {
+          $('savedUrl').textContent = saved;
+          $('connect').hidden = false;
+          timer = setTimeout(function () { go(saved); }, 1500);
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">OpenWA</string>
+    <string name="title_activity_main">OpenWA</string>
+    <string name="package_name">com.openwa.dashboard</string>
+    <string name="custom_url_scheme">com.openwa.dashboard</string>
+</resources>
